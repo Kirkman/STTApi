@@ -12,15 +12,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/IAmPicard/STTApi.git"
+    "url": "git+https://github.com/Kirkman/STTApi.git"
   },
   "keywords": [],
   "author": "IAmPicard",
   "license": "GPL-3.0",
   "bugs": {
-    "url": "https://github.com/IAmPicard/STTApi/issues"
+    "url": "https://github.com/Kirkman/STTApi/issues"
   },
-  "homepage": "https://github.com/IAmPicard/STTApi#readme",
+  "homepage": "https://github.com/Kirkman/STTApi#readme",
   "devDependencies": {
     "@types/node": "latest",
     "copyfiles": "latest",
