@@ -231,8 +231,11 @@ export async function loginSequence(onProgress: (description: string) => void, l
 
     onProgress('Loading crew cache...');
 
-    let allcrew = await STTApi.networkHelper.get(STTApi.serverAddress + 'allcrew.json', undefined);
-    STTApi.allcrew = formatAllCrew(allcrew);
+    //let allcrew = await STTApi.networkHelper.get(STTApi.serverAddress + 'allcrew.json', undefined);
+    //let allcrew = await STTApi.networkHelper.get('http://joshrenaud.com/experiments/star-trek-timelines/get_avatar_crew_archetypes.json', undefined);
+    let allcrew = [];
+    STTApi.allcrew = [];
+
 
     if (!STTApi.inWebMode) {
         onProgress('Loading equipment...');
