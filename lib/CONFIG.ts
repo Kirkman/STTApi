@@ -19,11 +19,11 @@ export default class CONFIG {
 	// default client_id of the Steam Windows version of STT
 	static readonly CLIENT_ID: string = "4fc852d7-d602-476a-a292-d243022a475d";
 	static readonly CLIENT_API_VERSION: number = 12;
-	static readonly CLIENT_VERSION: string = "7.0.9";
+	static readonly CLIENT_VERSION: string = "7.0.10";
 	static readonly CLIENT_PLATFORM: string = "webgl";
 
 	// releases URL
-	static readonly URL_GITHUBRELEASES: string = "https://api.github.com/repos/IAmPicard/StarTrekTimelinesSpreadsheet/releases";
+	static readonly URL_GITHUBRELEASES: string = "https://api.github.com/repos/Kirkman/StarTrekTimelinesSpreadsheet/releases";
 
 	// Every 10 days, check the wiki again for updated / new images
 	static readonly HOURS_TO_RECOVERY: number = 24 * 10;
