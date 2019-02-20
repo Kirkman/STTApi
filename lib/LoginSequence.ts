@@ -4,7 +4,8 @@ import { matchCrew, formatAllCrew } from './CrewTools';
 import { matchShips } from './ShipTools';
 import { IFoundResult } from './ImageProvider';
 import { loadMissionData } from './MissionTools';
-import { loadFullTree } from './EquipmentTools';
+import { loadFullTree, fixupAllCrewIds } from './EquipmentTools';
+import { refreshAllFactions, loadFactionStore } from './FactionTools';
 import { calculateMissionCrewSuccess, calculateMinimalComplementAsync } from './MissionCrewSuccess';
 
 export async function loginSequence(onProgress: (description: string) => void, loadMissions: boolean = true) {
@@ -201,6 +202,8 @@ export async function loginSequence(onProgress: (description: string) => void, l
 
     //await Promise.all(iconPromises);
 
+    await refreshAllFactions();
+
     onProgress('Caching faction images...');
 
     total += STTApi.playerData.character.factions.length;
@@ -223,6 +226,7 @@ export async function loginSequence(onProgress: (description: string) => void, l
             // If we leave this in, stupid React will re-render everything, even though we're in a tight synchronous loop and no one gets to see the updated value anyway
             //onProgress('Caching faction images... (' + current++ + '/' + total + ')');
         }
+        iconPromises.push(loadFactionStore(faction));
     }
 
     onProgress('Caching faction images... (' + current + '/' + total + ')');
@@ -231,17 +235,46 @@ export async function loginSequence(onProgress: (description: string) => void, l
 
     onProgress('Loading crew cache...');
 
-    //let allcrew = await STTApi.networkHelper.get(STTApi.serverAddress + 'allcrew.json', undefined);
-    //let allcrew = await STTApi.networkHelper.get('http://joshrenaud.com/experiments/star-trek-timelines/get_avatar_crew_archetypes.json', undefined);
-    let allcrew = [];
-    STTApi.allcrew = [];
-
-
-    if (!STTApi.inWebMode) {
-        onProgress('Loading equipment...');
-
-        await loadFullTree(onProgress);
+    try {
+        let allcrew = await STTApi.networkHelper.get(STTApi.serverAddress + 'allcrew.json', undefined);
+        STTApi.allcrew = formatAllCrew(allcrew);
     }
+    catch (e) {
+        console.error(e);
+        STTApi.allcrew = [];
+    }
+
+    // Also load the avatars for crew not in the roster
+    for (let crew of STTApi.allcrew) {
+        crew.iconUrl = STTApi.imageProvider.getCrewCached(crew, false);
+        if (crew.iconUrl === '') {
+            iconPromises.push(STTApi.imageProvider.getCrewImageUrl(crew, false, crew.id).then((found: IFoundResult) => {
+                onProgress('Caching crew images... (' + current++ + '/' + total + ')');
+                let crew = STTApi.allcrew.find((crew: any) => crew.id === found.id);
+                crew.iconUrl = found.url;
+            }).catch((error: any) => { /*console.warn(error);*/ }));
+        } else {
+            // Image is already cached
+
+            current++;
+            // If we leave this in, stupid React will re-render everything, even though we're in a tight synchronous loop and no one gets to see the updated value anyway
+            //onProgress('Caching crew images... (' + current++ + '/' + total + ')');
+        }
+    }
+
+
+    onProgress('Loading equipment...');
+    if (STTApi.inWebMode) {
+        // In web mode we already augmented the itemarchetypes with whatever we had cached, just try to fix stuff up here
+        fixupAllCrewIds();
+    } else {
+        await loadFullTree(onProgress, false);
+    }
+
+    // We no longer need to keep these around
+    STTApi.allcrew.forEach((crew: any) => {
+        crew.archetypes = [];
+    });
 
     onProgress('Caching images...');
 

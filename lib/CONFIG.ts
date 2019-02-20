@@ -52,6 +52,15 @@ export default class CONFIG {
 		'medicine_skill': 'Medicine'
 	};
 
+	static readonly SKILLS_SHORT: { [index: string]: string } = {
+		command_skill: 'CMD',
+		science_skill: 'SCI',
+		security_skill: 'SEC',
+		engineering_skill: 'ENG',
+		diplomacy_skill: 'DIP',
+		medicine_skill: 'MED'
+	};
+
 	static readonly CREW_SHIP_BATTLE_BONUS_TYPE: { [index: number]: string } = {
 		0: 'Attack',
 		1: 'Evasion',
@@ -111,6 +120,21 @@ export default class CONFIG {
 		11: 'Event',
 		12: 'Stimpack grant',
 		13: 'Useful loot'  // ?
+	};
+
+	static readonly CURRENCIES = {
+		premium_earnable: {
+			name: 'merits',
+			icon: 'images_currency_pe_currency_0'
+		},
+		premium_purchasable: {
+			name: 'dilithium',
+			icon: 'images_currency_pp_currency_0'
+		},
+		nonpremium: {
+			name: 'credits',
+			icon: 'images_currency_sc_currency_0'
+		}
 	};
 
 	static SPRITES: { [index: string]: { asset: string, url: string|undefined } } = {

@@ -4,6 +4,9 @@ import CONFIG from "./CONFIG";
 export async function loadGauntlet(): Promise<any> {
 	let data = await STTApi.executeGetRequest("gauntlet/status", { gauntlet_id: -1 });
 	if (data.character && data.character.gauntlets) {
+		// Clear out old data
+		STTApi.playerData.character.gauntlets = [];
+		await STTApi.applyUpdates(data);
 		return data.character.gauntlets[0];
 	} else {
 		throw new Error("Invalid data for gauntlet!");
@@ -130,6 +133,7 @@ export interface IOpponentOdd {
 	name: string;
 	level: number;
 	value: number;
+	rank: number;
 	player_id: number;
 	crew_id: number;
 	archetype_symbol: string;
@@ -195,6 +199,7 @@ export function gauntletRoundOdds(currentGauntlet: any, simulatedRounds: number)
 			name: opponent.name,
 			level: opponent.level,
 			value: opponent.value,
+			rank: opponent.rank,
 			player_id: opponent.player_id,
 			crew_id: opponent.crew_contest_data.crew[0].crew_id,
 			archetype_symbol: opponent.crew_contest_data.crew[0].archetype_symbol,
@@ -304,7 +309,14 @@ export interface IGauntletCrewSelection {
 	recommendations: Array<number>;
 }
 
-export function gauntletCrewSelection(currentGauntlet: any, roster: any, featuredSkillBonus: number, critBonusDivider: number, preSortCount: number, includeFrozen: boolean): any {
+export function gauntletCrewSelection(
+	currentGauntlet: any, 
+	roster: any, 
+	featuredSkillBonus: number, 
+	critBonusDivider: number,
+	preSortCount: number,
+	includeFrozen: boolean
+): any {
 	let gauntletCrew: any[] = [];
 
 	roster.forEach((crew: any) => {

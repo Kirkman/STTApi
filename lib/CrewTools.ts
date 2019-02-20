@@ -36,8 +36,20 @@ export function calculateBuffConfig(): { [index: string]: IBuffStat } {
 	return buffConfig;
 }
 
-function rosterFromCrew(rosterEntry: any, crew: any): void {
+// WIP Interface for the Crew data.
+export interface ICrew {
+	level: number;
+	max_level: number;
+	rarity: number;
+	in_buy_back_state: boolean;
+	favorite: boolean;
+	id: number;
+	active_id: number;
+}
+
+function rosterFromCrew(rosterEntry: any, crew: any|ICrew): void {
 	rosterEntry.level = crew.level;
+	rosterEntry.max_level = crew.max_level;
 	rosterEntry.rarity = crew.rarity;
 	rosterEntry.buyback = crew.in_buy_back_state;
 	rosterEntry.favorite = crew.favorite;
@@ -102,7 +114,15 @@ function getDefaults(id: number): any {
 
 export function formatAllCrew(allcrew: any[]) {
 	let roster: any[] = [];
+	let dupeChecker = new Set<string>();
 	allcrew.forEach((crew: any) => {
+		// Sometimes duplicates can sneak into our allcrew list, filter them out
+		if (dupeChecker.has(crew.symbol)) {
+			return;
+		}
+
+		dupeChecker.add(crew.symbol);
+
 		STTApi.applyBuffConfig(crew);
 
 		let rosterEntry = getDefaultsInner(crew);
@@ -111,6 +131,12 @@ export function formatAllCrew(allcrew: any[]) {
 		rosterFromCrew(rosterEntry, crew);
 
 		rosterEntry.archetypes = crew.archetypes;
+
+		let avatar = STTApi.crewAvatars.find((av: any) => av.symbol === crew.symbol);
+		if (avatar) {
+			rosterEntry.id = avatar.id;
+		}
+
 		roster.push(rosterEntry);
 	});
 
@@ -175,6 +201,7 @@ async function loadFrozen(rosterEntry: any): Promise<void> {
 	let entry = await STTApi.immortals.where('symbol').equals(rosterEntry.symbol).first();
 	if (entry) {
 		//console.info('Found ' + rosterEntry.symbol + ' in the immortalized crew cache');
+		STTApi.applyBuffConfig(entry.crew);
 		rosterFromCrew(rosterEntry, entry.crew);
 	} else {
 		let crew = await STTApi.loadFrozenCrew(rosterEntry.symbol);
@@ -189,21 +216,12 @@ async function loadFrozen(rosterEntry: any): Promise<void> {
 }
 
 export function formatCrewStats(crew: any): string {
-	let SkillShortNames: { [index: string]: string } = {
-		'command_skill': 'CMD',
-		'science_skill': 'SCI',
-		'security_skill': 'SEC',
-		'engineering_skill': 'ENG',
-		'diplomacy_skill': 'DIP',
-		'medicine_skill': 'MED'
-	};
-
 	let result = '';
 	for (let skillName in CONFIG.SKILLS) {
 		let skill = crew[skillName];
 		
 		if (skill.core && (skill.core > 0)) {
-			result += `${SkillShortNames[skillName]} (${Math.floor(skill.core + (skill.min + skill.max) / 2)}) `;
+			result += `${CONFIG.SKILLS_SHORT[skillName]} (${Math.floor(skill.core + (skill.min + skill.max) / 2)}) `;
 		}
 	}
 	return result;

@@ -1,19 +1,19 @@
 /*
-    StarTrekTimelinesSpreadsheet - A tool to help with crew management in Star Trek Timelines
-    Copyright (c) 2017 - 2018 IAmPicard
+	StarTrekTimelinesSpreadsheet - A tool to help with crew management in Star Trek Timelines
+	Copyright (c) 2017 - 2018 IAmPicard
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import { NetworkInterface } from "./NetworkInterface";
 import { NetworkFetch } from "./NetworkFetch";
@@ -25,6 +25,7 @@ import { mergeDeep } from './ObjectMerge';
 import { ImageProvider, ImageCache } from './ImageProvider';
 import { WikiImageProvider } from './WikiImageTools';
 import { AssetImageProvider } from './AssetImageProvider';
+import { NeededEquipmentClass, IEquipNeedFilter, IEquipNeed } from './EquipmentTools';
 import Dexie from "dexie";
 import CONFIG from "./CONFIG";
 
@@ -36,6 +37,7 @@ export class STTApiClass {
 	private _fleetMemberInfo: any;
 	private _cache: DexieCache;
 	private _buffConfig: { [index: string]: IBuffStat };
+	private _neededEquipment: NeededEquipmentClass;
 
 	public platformConfig: any;
 	public crewAvatars: any;
@@ -57,6 +59,7 @@ export class STTApiClass {
 	constructor() {
 		this.refreshEverything(true);
 		this._net = new NetworkFetch();
+		this._neededEquipment = new NeededEquipmentClass();
 
 		// TODO: Dexie uses IndexedDB, so doesn't work in plain node.js without polyfill - should the caching be an interface?
 		this._cache = new DexieCache("sttcache");
@@ -65,10 +68,14 @@ export class STTApiClass {
 		this._buffConfig = {};
 	}
 
-	setWebMode(webMode: boolean) {
+	setWebMode(webMode: boolean, keepServerAddress: boolean) {
 		this.inWebMode = webMode;
 
 		if (this.inWebMode) {
+			// In web mode, we don't hardcode the server, but simply load from the domain root
+			if (!keepServerAddress) {
+				this.serverAddress = '/';
+			}
 			this._net.setProxy(this.serverAddress + 'proxy');
 		}
 	}
@@ -92,13 +99,19 @@ export class STTApiClass {
 			this._accessToken = undefined;
 
 			if (this._cache) {
-				await this._cache.config.where('key').equals('autoLogin').delete();
-				await this._cache.config.where('key').equals('accessToken').delete();
+				await this._cache.config
+					.where('key')
+					.equals('autoLogin')
+					.delete();
+				await this._cache.config
+					.where('key')
+					.equals('accessToken')
+					.delete();
 			}
 		}
 	}
 
-	setImageProvider(useAssets: boolean, imageCache: ImageCache|undefined) {
+	setImageProvider(useAssets: boolean, imageCache: ImageCache) {
 		if (useAssets) {
 			this.imageProvider = new AssetImageProvider(imageCache);
 		}
@@ -121,13 +134,13 @@ export class STTApiClass {
 	
 	get equipmentCache(): Dexie.Table<EquipmentTable, string> {
 		return this._cache.equipment;
-    }
-    
-    get immortals(): Dexie.Table<ImmortalsTable, string> {
+	}
+	
+	get immortals(): Dexie.Table<ImmortalsTable, string> {
 		return this._cache.immortals;
-    }
-    
-    get wikiImages(): Dexie.Table<WikiImageTable, string> {
+	}
+	
+	get wikiImages(): Dexie.Table<WikiImageTable, string> {
 		return this._cache.wikiImages;
 	}
 
@@ -252,6 +265,19 @@ export class STTApiClass {
 			Object.assign({ client_api: CONFIG.CLIENT_API_VERSION, access_token: this._accessToken}, qs));
 	}
 
+	async executeGetRequestWithUpdates(resourceUrl: string, qs: any = {}): Promise<any> {
+		if (this._accessToken === undefined) {
+			throw new Error('Not logged in!');
+		}
+
+		return this._net
+			.get_proxy(
+				CONFIG.URL_SERVER + resourceUrl,
+				Object.assign({ client_api: CONFIG.CLIENT_API_VERSION, access_token: this._accessToken }, qs)
+			)
+			.then((data: any) => this.applyUpdates(data));
+	}
+
 	async executePostRequest(resourceUrl: string, qs: any): Promise<any> {
 		if (this._accessToken === undefined) {
 			throw new Error("Not logged in!");
@@ -261,6 +287,16 @@ export class STTApiClass {
 			Object.assign({ client_api: CONFIG.CLIENT_API_VERSION }, qs),
 			this._accessToken
 		);
+	}
+
+	async executePostRequestWithUpdates(resourceUrl: string, qs: any = {}): Promise<any> {
+		if (this._accessToken === undefined) {
+			throw new Error('Not logged in!');
+		}
+
+		return this._net
+			.post_proxy(CONFIG.URL_SERVER + resourceUrl, Object.assign({ client_api: CONFIG.CLIENT_API_VERSION }, qs), this._accessToken)
+			.then((data: any) => this.applyUpdates(data));
 	}
 
 	async loadServerConfig(): Promise<any> {
@@ -408,7 +444,7 @@ export class STTApiClass {
 
 		if (Array.isArray(data)) {
 			let ephemerals: any[] = [];
-			for(let val of data) {
+			for (let val of data) {
 				let e = await this.applyUpdates(val);
 				ephemerals = ephemerals.concat(e);
 			}
@@ -417,7 +453,7 @@ export class STTApiClass {
 		} else {
 			if (!data.action) {
 				console.log(`Not sure what message this is; should we be updating something: '${data}'`);
-				return [];
+				return [data];
 			}
 
 			if (data.action === 'update') {
@@ -428,10 +464,37 @@ export class STTApiClass {
 				if (data.character) {
 					this._playerData.player.character = mergeDeep(this._playerData.player.character, data.character);
 				}
+
+				if (data.event) {
+					if(this._playerData.player.character.events && this._playerData.player.character.events.length === 1) {
+						this._playerData.player.character.events[0] = mergeDeep(this._playerData.player.character.events[0], data.event);
+					}
+				}
 			} else if (data.action === 'delete') {
 				// TODO
 				// For example, data.character.items, array with objects with just the id property in them
-				console.log('Delete not applied; data is most likely stale; user should refresh');
+
+				if (data.character) {
+					for (let prop in data.character) {
+						if (Array.isArray(data.character[prop]) && Array.isArray(this._playerData.player.character[prop])) {
+							for (let item of data.character[prop]) {
+								this._playerData.player.character[prop] = this._playerData.player.character[prop].filter((itm: any) => itm.id !== item.id);
+							}
+						}
+					}
+				} else if (
+					data.event &&
+					data.event.content.gather_pool &&
+					data.event.content.gather_pool.length === 1 &&
+					data.event.content.gather_pools[0].adventures &&
+					data.event.content.gather_pools[0].adventures.length === 1
+				) {
+					this._playerData.player.character.events[0].content.gather_pools[0].adventures = this._playerData.player.character.events[0].content.gather_pools[0].adventures.filter(
+						(itm: any) => itm.id !== data.event.content.gather_pools[0].adventures[0].id
+					);
+				} else {
+					console.warn('Delete not applied; data is most likely stale; user should refresh');
+				}
 			} else if (data.action === 'ephemeral') {
 				return [data];
 			} else {
@@ -449,9 +512,13 @@ export class STTApiClass {
 		}
 
 		for (let skill in crew.base_skills) {
-			crew.skills[skill].core = Math.floor(crew.base_skills[skill].core * getMultiplier(skill, 'core'));
-			crew.skills[skill].range_min = Math.floor(crew.base_skills[skill].range_min * getMultiplier(skill, 'range_min'));
-			crew.skills[skill].range_max = Math.floor(crew.base_skills[skill].range_max * getMultiplier(skill, 'range_max'));
+			crew.skills[skill].core = Math.round(crew.base_skills[skill].core * getMultiplier(skill, 'core'));
+			crew.skills[skill].range_min = Math.round(crew.base_skills[skill].range_min * getMultiplier(skill, 'range_min'));
+			crew.skills[skill].range_max = Math.round(crew.base_skills[skill].range_max * getMultiplier(skill, 'range_max'));
 		}
+	}
+
+	getNeededEquipment(filters: IEquipNeedFilter, limitCrew: number[]): IEquipNeed[] {
+		return this._neededEquipment.filterNeededEquipment(filters, limitCrew);
 	}
 }
