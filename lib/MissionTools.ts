@@ -35,6 +35,7 @@ async function loadQuestData(completed: boolean, quest: any) {
 
 async function loadConflictInfo(quest: any) {
 	let data = await STTApi.executeGetRequest("quest/conflict_info", { id: quest.id });
+	console.log(data);
 	if (!data.mastery_levels) {
 		throw new Error('Invalid data for quest conflict!');
 	}
@@ -69,6 +70,7 @@ export interface IMissionData {
 
 export async function loadMissionData(accepted_missions: any, dispute_histories: any): Promise<IMissionData[]> {
 	let mission_ids: any[] = [];
+	console.log(accepted_missions);
 
 	accepted_missions.forEach((mission: any) => {
 		if (mission.symbol !== 'mission_npev2') {
@@ -89,6 +91,7 @@ export async function loadMissionData(accepted_missions: any, dispute_histories:
 	}
 
 	let data = await STTApi.executeGetRequest("mission/info", { ids: mission_ids });
+	console.log(data);
 	let missions: IMissionData[] = [];
 	let questPromises: Promise<void>[] = [];
 
