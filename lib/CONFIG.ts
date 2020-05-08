@@ -19,8 +19,11 @@ export default class CONFIG {
 	// default client_id of the Steam Windows version of STT
 	static readonly CLIENT_ID: string = "4fc852d7-d602-476a-a292-d243022a475d";
 	static readonly CLIENT_API_VERSION: number = 15;
-	static readonly CLIENT_VERSION: string = "7.4.0";
+	static readonly CLIENT_VERSION: string = "7.4.2";
 	static readonly CLIENT_PLATFORM: string = "webgl";
+
+	// As of 2020-05-08, I'm hardcoding this value from https://stt-cdn-services.s3.amazonaws.com/production/win64_7.4.2.txt (according to https://github.com/iamtosk/StarTrekTimelinesSpreadsheet/issues/12)
+	static readonly ASSET_BUNDLE_VERSION: string = "202004211587485958_LCA"; 
 
 	// releases URL
 	static readonly URL_GITHUBRELEASES: string = "https://api.github.com/repos/Kirkman/StarTrekTimelinesSpreadsheet/releases";

@@ -17,7 +17,8 @@ export class AssetImageProvider implements ImageProvider {
 
     get baseURLAsset(): string {
         if (this._baseURLAsset.length == 0) {
-            this._baseURLAsset = STTApi.serverConfig.config.asset_server + 'bundles/' + CONFIG.CLIENT_PLATFORM + '/default/' + CONFIG.CLIENT_VERSION + '/' + STTApi.serverConfig.config.asset_bundle_version + '/';
+            // this._baseURLAsset = STTApi.serverConfig.config.asset_server + 'bundles/' + CONFIG.CLIENT_PLATFORM + '/default/' + CONFIG.CLIENT_VERSION + '/' + STTApi.serverConfig.config.asset_bundle_version + '/';
+            this._baseURLAsset = STTApi.serverConfig.config.asset_server + 'bundles/' + CONFIG.CLIENT_PLATFORM + '/default/' + CONFIG.CLIENT_VERSION + '/' + CONFIG.ASSET_BUNDLE_VERSION + '/';
         }
         return this._baseURLAsset;
     }
