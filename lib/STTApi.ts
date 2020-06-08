@@ -349,7 +349,24 @@ export class STTApiClass {
 	async resyncInventory(): Promise<any> {
 		// TODO: we should sync this data back into _playerData.player somehow (but we're adding too much stuff onto it now to work, like iconUrls, immortals, etc.)
 		let data = await this.executeGetRequest("player/resync_inventory");
-		if (data.player) {
+
+		// JOSH: In June 2020, the simple check for existence of "data.player" stopped working. 
+		// The "character" data is still there, though, so I'm building a simple object wrapper with a 'player' key 
+		// so that the VoyageTools will keep working as expected.
+		if (data.length > 1) {
+			let newData = null;
+			for (let i=0; i<data.length; i++) {
+				if ('character' in data[i]) {
+					newData = {
+						'player': data[i]
+					}
+					return newData;
+				}
+			}
+			if (!newData) {
+				throw new Error("Could not find 'character' key in resync_inventory data array.");
+			}
+		} else if (data.player) {
 			return data;
 		} else {
 			throw new Error("Invalid data for player!");
