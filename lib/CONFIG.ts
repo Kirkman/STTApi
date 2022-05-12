@@ -19,11 +19,15 @@ export default class CONFIG {
 	// default client_id of the Steam Windows version of STT
 	static readonly CLIENT_ID: string = "4fc852d7-d602-476a-a292-d243022a475d";
 	static readonly CLIENT_API_VERSION: number = 15;
-	static readonly CLIENT_VERSION: string = "7.4.2";
-	static readonly CLIENT_PLATFORM: string = "webgl";
 
-	// As of 2020-05-08, I'm hardcoding this value from https://stt-cdn-services.s3.amazonaws.com/production/win64_7.4.2.txt (according to https://github.com/iamtosk/StarTrekTimelinesSpreadsheet/issues/12)
-	static readonly ASSET_BUNDLE_VERSION: string = "202004211587485958_LCA"; 
+	// To get the ASSET_BUNDLE_VERSION value, you have to jump through a few hoops:
+	// 1. Get the minimum WebGL version from https://stt-cdn-services.s3.amazonaws.com/production/webgl_minimum_version.txt
+	// 2. Use the value in that text file (e.g. "8.1.1") to construct a new url: https://stt-cdn-services.s3.amazonaws.com/production/webgl_8.1.1.txt
+	// 3. Use the value in this 2nd text file as ASSET_BUNDLE_VERSION (e.g. "202108181629294768_LCA")
+	// As of 2021-08-21, I'm hardcoding this value. But ideally I would write a routine to fetch these values dynamically.
+	static readonly CLIENT_VERSION: string = "8.3.0";
+	static readonly CLIENT_PLATFORM: string = "webgl";
+	static readonly ASSET_BUNDLE_VERSION: string = "202205101652197003_LCA"; 
 
 	// releases URL
 	static readonly URL_GITHUBRELEASES: string = "https://api.github.com/repos/Kirkman/StarTrekTimelinesSpreadsheet/releases";
