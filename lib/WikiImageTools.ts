@@ -14,23 +14,33 @@ async function getWikiImageUrl(fileName: string, id: any): Promise<IFoundResult>
 		}
 	}
 
-	let data = await STTApi.networkHelper.get('https://stt.wiki/w/api.php', {
-			action: 'query',
-			titles: 'File:' + fileName + "|File:" + fileName.replace('png', 'PNG') + "|File:" + fileName.replace('.png', '_Full.png') + "|File:" + fileName.replace('_', '-'),
-			prop: 'imageinfo',
-			iiprop: 'url|metadata',
-			format: 'json'
-		});
+	// ------------------------------------------------
+	// STT WIKI SEEMS TO HAVE REMOVE THEIR API ENDPOINT
+	// ------------------------------------------------
 
-	let foundUrl = undefined;
-	Object.keys(data.query.pages).forEach((pageKey: any) => {
-		let page = data.query.pages[pageKey];
-		if (page.imageinfo) {
-			page.imageinfo.forEach((imgInfo: any) => {
-				foundUrl = imgInfo.url;
-			});
-		}
-	});
+	// let data = await STTApi.networkHelper.get('https://sttwiki.org/w/api.php', {
+	// 		action: 'query',
+	// 		titles: 'File:' + fileName + "|File:" + fileName.replace('png', 'PNG') + "|File:" + fileName.replace('.png', '_Full.png') + "|File:" + fileName.replace('_', '-'),
+	// 		prop: 'imageinfo',
+	// 		iiprop: 'url|metadata',
+	// 		format: 'json'
+	// 	});
+
+	// let foundUrl = undefined;
+	// Object.keys(data.query.pages).forEach((pageKey: any) => {
+	// 	let page = data.query.pages[pageKey];
+	// 	if (page.imageinfo) {
+	// 		page.imageinfo.forEach((imgInfo: any) => {
+	// 			foundUrl = imgInfo.url;
+	// 		});
+	// 	}
+	// });
+
+	// ------------------------------------------------
+	// SO, INSTEAD USE DATACORE ASSETS SERVER
+	// ------------------------------------------------
+
+	let foundUrl = 'https://assets.datacore.app/' + fileName;
 
 	STTApi.wikiImages.put({
 		fileName: fileName,
@@ -50,23 +60,29 @@ async function getWikiImageUrl(fileName: string, id: any): Promise<IFoundResult>
 
 export class WikiImageProvider implements ImageProvider {
 	getCrewImageUrl(crew: any, fullBody: boolean, id: any): Promise<IFoundResult> {
-		let fileName = crew.name.split(' ').join('_') + (fullBody ? '' : '_Head') + '.png';
+		let fileName = '';
+		if (fullBody) {
+			fileName = crew.full_body.file.substring(1).replace('/','_') + '.png';
+		}
+		else {
+			fileName = crew.portrait.file.substring(1).replace('/','_') + '.png';
+		}
+
 		return getWikiImageUrl(fileName, id);
 	}
 
 	getShipImageUrl(ship: any, id: any): Promise<IFoundResult> {
-		let fileName = ship.name.split(' ').join('_').split('.').join('').split('\'').join('') + '.png';
+		let fileName = ship.icon.file.substring(1).replace(/\//g,'_') + '.png';
 		return getWikiImageUrl(fileName, id);
 	}
 
 	getItemImageUrl(item: any, id: any): Promise<IFoundResult> {
-		let fileName = item.name + CONFIG.RARITIES[item.rarity].name + '.png';
-		fileName = fileName.split(' ').join('').split('\'').join('');
+		let fileName = item.icon.file.substring(1).replace(/\//g,'_') + '.png';
 		return getWikiImageUrl(fileName, id);
 	}
 
 	getFactionImageUrl(faction: any, id: any): Promise<IFoundResult> {
-		let fileName = 'Icon' + faction.name.split(' ').join('') + '.png';
+		let fileName = faction.icon.file.substring(1).replace(/\//g,'_') + '.png';
 		return getWikiImageUrl(fileName, id);
 	}
 
@@ -75,7 +91,7 @@ export class WikiImageProvider implements ImageProvider {
 	}
 
 	getImageUrl(iconFile: string, id: any): Promise<IFoundResult> {
-		let fileName = iconFile + '.png';
+		let fileName = iconFile.substring(1).replace(/\//g,'_') + '.png';
 		return getWikiImageUrl(fileName, id);
 	}
 
