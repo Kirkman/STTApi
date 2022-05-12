@@ -38,7 +38,10 @@ self.addEventListener('message', (message: any) => {
         self.close();
     }
 
-    if (result.data.length > 0) {
+    if (!result.data) {
+        (self as any).postMessage(result);
+    }
+    else if (result.data.length > 0) {
         (self as any).postMessage(result, [result.data.buffer]);
     }
     else {
